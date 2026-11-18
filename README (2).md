@@ -48,8 +48,9 @@ Das **ereigniskorrelierte Profil** mittelt die Relevanz über alle Wörter auf e
 ## 4 Ausführung
 
 ```
-Colab → Laufzeit: GPU → whisper_xai.ipynb komplett ausführen
+Windows lokal (GTX 1660 SUPER): `python -m pip install -r requirements.txt`
 ```
+Die erste Notebook-Zelle installiert PyTorch mit CUDA 12.8. Danach den Kernel neu starten und das Notebook von oben ausführen. Die GPU-Zelle bricht ab, wenn CUDA nicht verfügbar ist, statt unbemerkt auf der CPU weiterzurechnen.
 * `QUICK = True`: Probelauf mit 10 Äußerungen.
 * Standard: 100 Äußerungen ≤ 15 s für die Lokalisierung, 25 davon für Deletion und Ablation.
 * Alle Parameter stehen in `CFG`.
