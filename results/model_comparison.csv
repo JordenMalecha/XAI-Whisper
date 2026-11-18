@@ -1,0 +1,16 @@
+,openai/whisper-tiny,openai/whisper-base
+WER,0.084,0.066
+IG_mass_in,0.232,0.208
+IG_lift,6.309,5.433
+IG_pointing,0.751,0.736
+pointing_chance,0.049,0.049
+best_cross_head,0.991,0.991
+mean_cross_head,0.312,0.22
+enc_local_first,0.408,0.35
+enc_local_last,0.162,0.115
+enc_pad_mass,0.075,0.12
+del_auc_IG,-3.65,-2.807
+del_auc_Oracle,-4.303,-3.819
+align_heads_pointing,0.579,0.73
+dWER_align_heads,1.383,0.868
+dWER_random_heads,0.538,2.77
