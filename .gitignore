@@ -1,0 +1,4 @@
+# Ergebnis-Cache (groß, wird lokal neu erzeugt)
+results/cache_res.pkl
+# Probelauf (WHISPER_XAI_QUICK=1)
+results_quick/

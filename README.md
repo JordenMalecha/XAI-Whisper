@@ -27,7 +27,7 @@ Whisper (Radford et al., 2023) wandelt Audio in ein 80-Band-Log-Mel-Spektrogramm
 
 | Methode | Was sie berechnet | Warum | Schwäche |
 |---|---|---|---|
-| **Integrated Gradients** (Sundararajan et al., 2017) | $(x-x_0)\odot\int_0^1\nabla f(x_0+\alpha(x-x_0))\,d\alpha$, 32 Stützstellen | Erfüllt die Axiome *Completeness* und *Sensitivity*. Die Completeness wird im Notebook pro Wort geprüft. | Hängt von der Baseline ab, teuer |
+| **Integrated Gradients** (Sundararajan et al., 2017) | $(x-x_0)\odot\int_0^1\nabla f(x_0+\alpha(x-x_0))\,d\alpha$, 256 Stützstellen | Erfüllt die Axiome *Completeness* und *Sensitivity*. Die Completeness wird im Notebook pro Wort geprüft, die Konvergenz zusätzlich für 16–256 Stützstellen. | Hängt von der Baseline ab, teuer |
 | **Gradient × Δ** (Shrikumar et al., 2016) | $\nabla f(x)\odot(x-x_0)$ | Billige lokale Näherung, Vergleich zu IG | Wird bei Sättigung ungenau |
 | **Zeit-Occlusion** (Zeiler & Fergus, 2014) | Abfall von $\log p$, wenn ein 100-ms-Fenster durch $X_0$ ersetzt wird | Modellagnostisch und kausal | Grobe Auflösung, erzeugt Eingaben außerhalb der Trainingsverteilung |
 | **Band-Occlusion** | Wie oben, aber 8 Mel-Bandgruppen nur im Wortsegment | Kausale Gegenprobe zur spektralen IG-Analyse | Wie oben |
@@ -43,18 +43,27 @@ Whisper (Radford et al., 2023) wandelt Audio in ein 80-Band-Log-Mel-Spektrogramm
 * Masse in den 300 ms vor bzw. nach dem Wort,
 * Abstand des Peaks zur Wortmitte.
 
-Das **ereigniskorrelierte Profil** mittelt die Relevanz über alle Wörter auf einer relativen Zeitachse (0 = Wortanfang, 1 = Wortende). Der **Deletion-Test** (Samek et al., 2017) entfernt die laut Methode relevantesten Frames, und zwar 0,25- bis 4-mal so viele wie das Wort lang ist. Als Schranken dienen *Zufall* und *Oracle*, wobei Oracle die Frames nach Nähe zur Wortmitte entfernt.
+Das **ereigniskorrelierte Profil** mittelt die Relevanz über alle Wörter auf einer relativen Zeitachse (0 = Wortanfang, 1 = Wortende). Der **Deletion-Test** (Samek et al., 2017) entfernt die laut Methode relevantesten Frames, und zwar 0,25- bis 4-mal so viele wie das Wort lang ist. Als Schranken dienen *Zufall* und *Oracle*, wobei Oracle die Frames nach Nähe zur Wortmitte entfernt. Gleich bewertete Frames werden zufällig gereiht.
+
+**Statistik:** Wörter derselben Äußerung sind nicht unabhängig. Tests laufen deshalb auf Äußerungsebene (Mittel je Äußerung, Wilcoxon), Konfidenzintervalle stammen aus einem Cluster-Bootstrap über Äußerungen, und mehrere gleichartige Tests werden nach Holm korrigiert. Referenz und Hypothese werden vor WER und Wortabgleich mit Whispers `EnglishTextNormalizer` normalisiert.
 
 ## 4 Ausführung
 
+Getestet unter Windows mit einer GTX 1660 SUPER (6 GB VRAM), Python 3.14 und CUDA 12.8:
+
 ```
-Windows lokal (GTX 1660 SUPER): `python -m pip install -r requirements.txt`
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
 ```
-Die erste Notebook-Zelle installiert PyTorch mit CUDA 12.8. Danach den Kernel neu starten und das Notebook von oben ausführen. Die GPU-Zelle bricht ab, wenn CUDA nicht verfügbar ist, statt unbemerkt auf der CPU weiterzurechnen.
-* `QUICK = True`: Probelauf mit 10 Äußerungen.
-* Standard: 100 Äußerungen ≤ 15 s für die Lokalisierung, 25 davon für Deletion und Ablation.
+
+`requirements.txt` pinnt alle Versionen, mit denen die Ergebnisse erzeugt wurden (PyTorch 2.11.0+cu128, Transformers 5.23.0, Datasets 5.2.0 u. a.). Danach im Notebook den Kernel der `.venv` wählen und von oben ausführen. Die Setup-Zelle bricht ab, wenn CUDA nicht verfügbar ist, statt unbemerkt auf der CPU weiterzurechnen.
+
+* **Vollständiger Lauf:** 100 Äußerungen ≤ 15 s für die Lokalisierung, davon 25 für Deletion und Ablation und 3 für den IG-Konvergenzcheck. Rechenzeit auf der GTX 1660 SUPER: ca. 15 Stunden (tiny ca. 4,5 h, base ca. 10 h), überwiegend für Integrated Gradients mit 256 Stützstellen.
+* **Ergebnis-Cache:** Der Lauf speichert alle Ergebnisse zusammen mit der Konfiguration in `results/cache_res.pkl`. Mit `LOAD_CACHED = True` (Standard) lädt das Notebook diesen Cache, sofern `CFG` identisch ist; alle Auswertungen laufen dann in Sekunden. Bei geänderter `CFG` wird neu gerechnet. Der Cache ist wegen seiner Größe nicht im Repository (`.gitignore`).
+* **Probelauf:** Umgebungsvariable `WHISPER_XAI_QUICK=1` setzen (10 Äußerungen, 3 für Deletion/Ablation, weniger IG-Schritte). Die Ausgaben landen in `results_quick/` und überschreiben die Hauptergebnisse nicht.
+* **Speicher:** `batch` und `ig_batch` in `CFG` sind für 6 GB gewählt. Bei Speicherfehlern beide auf 1 setzen; die Ergebnisse ändern sich dadurch nicht.
 * Alle Parameter stehen in `CFG`.
-* Ausgaben landen in `results/`: Abbildungen, `*_word_metrics.csv`, `model_comparison.csv` und `summary.json`.
+* Ausgaben in `results/`: Abbildungen, `*_word_metrics.csv`, `model_comparison.csv` und `summary.json`.
 
 ## 5 Ergebnisse
 
